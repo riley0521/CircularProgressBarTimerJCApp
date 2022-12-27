@@ -1,6 +1,7 @@
 package com.rpfcoding.circularprogressbartimerjcapp
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
@@ -43,16 +44,24 @@ class MainActivity : ComponentActivity() {
                     color = Color(0xFF101010),
                     modifier = Modifier.fillMaxSize()
                 ) {
+                    var remainingTime by remember {
+                        mutableStateOf(60_000L)
+                    }
+
                     Box(
                         contentAlignment = Alignment.Center
                     ) {
                         TimerCircle(
-                            totalTime = TimeUnit.SECONDS.toMillis(10L),
+                            totalTime = TimeUnit.MINUTES.toMillis(2L),
+                            remainingTime = remainingTime,
                             handleColor = Color.Green,
                             inactiveBarColor = Color.DarkGray,
                             activeBarColor = Color(0xFF37B900),
                             modifier = Modifier.size(250.dp)
-                        )
+                        ) {
+                            remainingTime = it
+                            Log.d("MainActivity.kt", it.toString())
+                        }
                     }
                 }
             }
@@ -63,23 +72,40 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TimerCircle(
     totalTime: Long,
+    remainingTime: Long,
     handleColor: Color,
     inactiveBarColor: Color,
     activeBarColor: Color,
     modifier: Modifier = Modifier,
-    initialValue: Float = 1f,
-    strokeWidth: Dp = 5.dp
+    strokeWidth: Dp = 5.dp,
+    onStopClick: (remainingTime: Long) -> Unit
 ) {
     var size by remember {
         mutableStateOf(IntSize.Zero)
     }
 
-    var value by remember {
-        mutableStateOf(initialValue)
+    var currentTime by remember {
+        mutableStateOf(totalTime - remainingTime)
     }
 
-    var currentTime by remember {
-        mutableStateOf(totalTime)
+    val value by remember(currentTime) {
+        derivedStateOf {
+            currentTime / totalTime.toFloat()
+        }
+    }
+
+    val currentTimeFormatted by remember(currentTime) {
+        derivedStateOf {
+            var milliSeconds = currentTime
+
+            val minutes = TimeUnit.MILLISECONDS.toMinutes(milliSeconds)
+            milliSeconds -= TimeUnit.MINUTES.toMillis(minutes)
+
+            val seconds = TimeUnit.MILLISECONDS.toSeconds(milliSeconds)
+
+            "${if (minutes < 10) "0$minutes" else minutes}:" +
+                    "${if (seconds < 10) "0$seconds" else seconds}"
+        }
     }
 
     var isTimerRunning by remember {
@@ -87,10 +113,9 @@ fun TimerCircle(
     }
 
     LaunchedEffect(currentTime, key2 = isTimerRunning) {
-        if(currentTime > 0 && isTimerRunning) {
+        if (currentTime > 0 && isTimerRunning) {
             delay(100L)
             currentTime -= 100L
-            value = currentTime / totalTime.toFloat()
         }
     }
 
@@ -105,7 +130,7 @@ fun TimerCircle(
             drawArc(
                 color = inactiveBarColor,
                 startAngle = -90f,
-                sweepAngle = 360f,
+                sweepAngle = -360f,
                 useCenter = false,
                 size = Size(size.width.toFloat(), size.height.toFloat()),
                 style = Stroke(strokeWidth.toPx(), cap = StrokeCap.Round)
@@ -113,13 +138,13 @@ fun TimerCircle(
             drawArc(
                 color = activeBarColor,
                 startAngle = -90f,
-                sweepAngle = 360f * value,
+                sweepAngle = -360f * value,
                 useCenter = false,
                 size = Size(size.width.toFloat(), size.height.toFloat()),
                 style = Stroke(strokeWidth.toPx(), cap = StrokeCap.Round)
             )
             val center = Offset(size.width / 2f, size.height / 2f)
-            val beta = (360f * value - 90) * (PI / 180f).toFloat()
+            val beta = (-360f * value - 90) * (PI / 180f).toFloat()
             val r = size.width / 2f
             val a = cos(beta) * r
             val b = sin(beta) * r
@@ -133,18 +158,19 @@ fun TimerCircle(
         }
 
         Text(
-            text = (currentTime / 1000L).toString(),
+            text = currentTimeFormatted,
             fontSize = 44.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
         Button(
             onClick = {
-                if(currentTime <= 0L) {
+                if (currentTime <= 0L) {
                     currentTime = totalTime
                     isTimerRunning = true
                 } else {
                     isTimerRunning = !isTimerRunning
+                    onStopClick(currentTime)
                 }
             },
             modifier = Modifier
@@ -193,7 +219,7 @@ fun Timer(
     }
 
     LaunchedEffect(currentTime, key2 = isTimerRunning) {
-        if(currentTime > 0 && isTimerRunning) {
+        if (currentTime > 0 && isTimerRunning) {
             delay(100L)
             currentTime -= 100L
             value = currentTime / totalTime.toFloat()
@@ -246,7 +272,7 @@ fun Timer(
         )
         Button(
             onClick = {
-                if(currentTime <= 0L) {
+                if (currentTime <= 0L) {
                     currentTime = totalTime
                     isTimerRunning = true
                 } else {
