@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
@@ -45,12 +46,12 @@ class MainActivity : ComponentActivity() {
                     Box(
                         contentAlignment = Alignment.Center
                     ) {
-                        Timer(
+                        TimerCircle(
                             totalTime = TimeUnit.SECONDS.toMillis(10L),
                             handleColor = Color.Green,
                             inactiveBarColor = Color.DarkGray,
                             activeBarColor = Color(0xFF37B900),
-                            modifier = Modifier.size(200.dp)
+                            modifier = Modifier.size(250.dp)
                         )
                     }
                 }
@@ -58,6 +59,112 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+@Composable
+fun TimerCircle(
+    totalTime: Long,
+    handleColor: Color,
+    inactiveBarColor: Color,
+    activeBarColor: Color,
+    modifier: Modifier = Modifier,
+    initialValue: Float = 1f,
+    strokeWidth: Dp = 5.dp
+) {
+    var size by remember {
+        mutableStateOf(IntSize.Zero)
+    }
+
+    var value by remember {
+        mutableStateOf(initialValue)
+    }
+
+    var currentTime by remember {
+        mutableStateOf(totalTime)
+    }
+
+    var isTimerRunning by remember {
+        mutableStateOf(false)
+    }
+
+    LaunchedEffect(currentTime, key2 = isTimerRunning) {
+        if(currentTime > 0 && isTimerRunning) {
+            delay(100L)
+            currentTime -= 100L
+            value = currentTime / totalTime.toFloat()
+        }
+    }
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .onSizeChanged {
+                size = it
+            }
+    ) {
+        Canvas(modifier = modifier) {
+            drawArc(
+                color = inactiveBarColor,
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                size = Size(size.width.toFloat(), size.height.toFloat()),
+                style = Stroke(strokeWidth.toPx(), cap = StrokeCap.Round)
+            )
+            drawArc(
+                color = activeBarColor,
+                startAngle = -90f,
+                sweepAngle = 360f * value,
+                useCenter = false,
+                size = Size(size.width.toFloat(), size.height.toFloat()),
+                style = Stroke(strokeWidth.toPx(), cap = StrokeCap.Round)
+            )
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val beta = (360f * value - 90) * (PI / 180f).toFloat()
+            val r = size.width / 2f
+            val a = cos(beta) * r
+            val b = sin(beta) * r
+            drawPoints(
+                listOf(Offset(center.x + a, center.y + b)),
+                pointMode = PointMode.Points,
+                color = handleColor,
+                strokeWidth = (strokeWidth * 3f).toPx(),
+                cap = StrokeCap.Round
+            )
+        }
+
+        Text(
+            text = (currentTime / 1000L).toString(),
+            fontSize = 44.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+        Button(
+            onClick = {
+                if(currentTime <= 0L) {
+                    currentTime = totalTime
+                    isTimerRunning = true
+                } else {
+                    isTimerRunning = !isTimerRunning
+                }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp),
+            colors = ButtonDefaults.buttonColors(
+                backgroundColor = if (!isTimerRunning || currentTime <= 0L) {
+                    Color.Green
+                } else Color.Red
+            )
+        ) {
+            Text(
+                text = if (isTimerRunning && currentTime > 0L) "Stop"
+                else if (!isTimerRunning && currentTime > 0L) "Start"
+                else "Restart"
+            )
+        }
+    }
+}
+
 
 @Composable
 fun Timer(
