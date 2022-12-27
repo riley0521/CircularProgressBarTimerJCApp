@@ -44,6 +44,11 @@ class MainActivity : ComponentActivity() {
                     color = Color(0xFF101010),
                     modifier = Modifier.fillMaxSize()
                 ) {
+                    val totalTime by remember {
+                        // 2 is int and it comes from the database because we base in minutes
+                        mutableStateOf(TimeUnit.MINUTES.toMillis(2.toLong()))
+                    }
+
                     var remainingTime by remember {
                         mutableStateOf(60_000L)
                     }
@@ -52,13 +57,17 @@ class MainActivity : ComponentActivity() {
                         contentAlignment = Alignment.Center
                     ) {
                         TimerCircle(
-                            totalTime = TimeUnit.MINUTES.toMillis(2L),
+                            totalTime = totalTime,
                             remainingTime = remainingTime,
                             handleColor = Color.Green,
                             inactiveBarColor = Color.DarkGray,
                             activeBarColor = Color(0xFF37B900),
                             modifier = Modifier.size(250.dp)
                         ) {
+                            // Every time we hit pause, we save the remaining time millis
+                            // to database because we might affect the performance if
+                            // we save it to database every 100 milliseconds
+
                             remainingTime = it
                             Log.d("MainActivity.kt", it.toString())
                         }
