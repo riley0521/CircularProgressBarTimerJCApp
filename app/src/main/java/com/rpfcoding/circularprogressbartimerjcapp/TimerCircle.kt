@@ -38,7 +38,7 @@ fun TimerCircle(
     modifier: Modifier = Modifier,
     strokeWidth: Dp = 5.dp,
     onTimerTick: (Long) -> Unit,
-    onTimerFinish: () -> Unit
+    onTimerStop: (Boolean) -> Unit
 ) {
     var size by remember {
         mutableStateOf(IntSize.Zero)
@@ -78,7 +78,7 @@ fun TimerCircle(
             currentTime -= 100L
             onTimerTick(currentTime)
         } else if(currentTime == 0L) {
-            onTimerFinish()
+            onTimerStop(true)
         }
     }
 
@@ -133,6 +133,7 @@ fun TimerCircle(
                     isTimerRunning = true
                 } else {
                     isTimerRunning = !isTimerRunning
+                    onTimerStop(false)
                 }
             },
             modifier = Modifier

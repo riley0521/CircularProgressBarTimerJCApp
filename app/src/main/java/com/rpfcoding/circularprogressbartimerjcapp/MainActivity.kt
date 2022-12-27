@@ -74,15 +74,19 @@ class MainActivity : ComponentActivity() {
                             isActive = isActive,
                             modifier = Modifier.size(250.dp),
                             onTimerTick = {
-                                // Every time we hit pause, we save the remaining time millis
+                                // Every time we hit pause, we cannot save the remaining time millis
                                 // to database because we might affect the performance if
                                 // we save it to database every 100 milliseconds
 
                                 remainingTime = it
                                 Log.d("MainActivity.kt", it.toString())
                             },
-                            onTimerFinish = {
-                                // Save completed task to database.
+                            onTimerStop = { isFinished ->
+                                if(isFinished) {
+                                    // Tick isCompleted to true in database.
+                                } else {
+                                    // Save remaining time to database.
+                                }
                             }
                         )
                     }
