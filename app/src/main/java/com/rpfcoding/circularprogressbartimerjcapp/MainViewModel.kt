@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -12,28 +13,30 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor() : ViewModel() {
 
 
-    private val _model = MutableStateFlow(Model())
-    val model = _model.asStateFlow()
+    private val _model = MutableStateFlow(Model(
+        id = 1,
+        minutes = 10,
+        elapsedTimeInMillis = 0,
+        listOfActiveDaysInWeek = Model.listOfWeekdays()
+    ))
 
     private val _isTimerRunning = MutableStateFlow(false)
-    val isTimerRunning = _isTimerRunning.asStateFlow()
 
-    val isFinished: StateFlow<Boolean> = model.flatMapLatest {
+    private val _isFinished: StateFlow<Boolean> = _model.flatMapLatest {
         flow {
-            val min = it.minutes * 60L * 1000L
-            emit(min == it.elapsedTimeInMillis)
+            emit(it.minutes.convertMinutesToMillis() == it.elapsedTimeInMillis)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), false)
 
-    val isActive: StateFlow<Boolean> = combine(isFinished, model) { isFinished, model ->
+    private val _isActive: StateFlow<Boolean> = combine(_isFinished, _model) { isFinished, model ->
         !isFinished && model.listOfActiveDaysInWeek.any { it == LocalDate.now().dayOfWeek.value }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), false)
 
     val state = combine(
-        model,
-        isTimerRunning,
-        isFinished,
-        isActive
+        _model,
+        _isTimerRunning,
+        _isFinished,
+        _isActive
     ) { model, isTimerRunning, isFinished, isActive ->
         State(
             model = model,
@@ -54,7 +57,7 @@ class MainViewModel @Inject constructor() : ViewModel() {
             it.copy(elapsedTimeInMillis = elapsedTime)
         }
 
-        if(isFinished.value) {
+        if(_isFinished.value) {
             toggle(false)
             onSave()
         }
@@ -63,6 +66,20 @@ class MainViewModel @Inject constructor() : ViewModel() {
     private fun onSave() {
         Log.d("onSave()", "Saving record to database.")
 
-        // TODO("Not yet implemented")
+        viewModelScope.launch {
+            // TODO("Not yet implemented")
+        }
+    }
+
+    fun setNewMinutes(newMinutes: Int) {
+        if(newMinutes.convertMinutesToMillis() > _model.value.elapsedTimeInMillis) {
+            viewModelScope.launch {
+                _model.update {
+                    it.copy(
+                        minutes = newMinutes
+                    )
+                }
+            }
+        }
     }
 }

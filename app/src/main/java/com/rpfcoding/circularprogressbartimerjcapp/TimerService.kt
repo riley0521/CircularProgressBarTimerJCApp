@@ -15,7 +15,8 @@ import kotlinx.coroutines.flow.update
 
 class TimerService : LifecycleService() {
 
-    private var isTimerRunning: Boolean = false
+    private var firstRun: Boolean = false
+
     private var totalTime: Long = 0L
     private var serviceScope: Job? = null
 
@@ -39,7 +40,6 @@ class TimerService : LifecycleService() {
     private fun stop() {
         serviceScope?.cancel()
         serviceScope = null
-        isTimerRunning = false
 
         Log.d("TimerService.kt", "I'm stopping!")
 
@@ -49,16 +49,18 @@ class TimerService : LifecycleService() {
 
     private fun start(totalTime: Long, elapsedTime: Long) {
         this.totalTime = totalTime
-        if (elapsedTime > 0L) {
+        if (elapsedTime > 0L && !firstRun) {
+            firstRun = true
             mElapsedTime.update { elapsedTime }
         }
-        isTimerRunning = true
 
         val notification = NotificationCompat.Builder(this, "circular_progress_bar_timer_id")
             .setContentTitle("Timer")
             .setContentText("00:00")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setOngoing(true)
+
+        startForeground(74, notification.build())
 
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -70,7 +72,7 @@ class TimerService : LifecycleService() {
                 if(totalTime != mElapsedTime.value) {
                     mElapsedTime.update { it + 1000L }
                     notification.setContentText(getFormattedTime(totalTime - mElapsedTime.value))
-                    notificationManager.notify(1, notification.build())
+                    notificationManager.notify(74, notification.build())
                 } else {
                     stop()
                     return@launch
@@ -78,7 +80,6 @@ class TimerService : LifecycleService() {
             }
         }
 
-        startForeground(1, notification.build())
     }
 
     override fun onDestroy() {
