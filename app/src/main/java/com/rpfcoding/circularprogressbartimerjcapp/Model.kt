@@ -6,7 +6,8 @@ data class Model(
     val id: Int = 1,
     val minutes: Int,
     val elapsedTimeInMillis: Long,
-    val listOfActiveDaysInWeek: List<Int>
+    val listOfActiveDaysInWeek: List<Int>,
+    val title: String = "Sample Title",
 ) {
     companion object {
         fun listOfWeekdays(): List<Int> {

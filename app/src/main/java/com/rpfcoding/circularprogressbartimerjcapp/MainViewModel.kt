@@ -15,8 +15,8 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     private val _model = MutableStateFlow(Model(
         id = 1,
-        minutes = 10,
-        elapsedTimeInMillis = 0,
+        minutes = 1,
+        elapsedTimeInMillis = 55_000L,
         listOfActiveDaysInWeek = Model.listOfWeekdays()
     ))
 

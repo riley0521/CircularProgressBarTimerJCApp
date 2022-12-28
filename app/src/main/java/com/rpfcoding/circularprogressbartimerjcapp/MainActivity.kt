@@ -60,9 +60,18 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(true) {
                         launch {
                             TimerService.elapsedTime.collectLatest {
-
                                 if (!state.isFinished && state.isTimerRunning) {
                                     viewModel.updateElapsedTime(it)
+                                }
+                            }
+                        }
+                        launch {
+                            viewModel.state.collectLatest {
+                                if(state.isFinished) {
+                                    showNotification(
+                                        "Timer",
+                                        "Yey! You have done ${model?.title} for this day. Keep it up!"
+                                    )
                                 }
                             }
                         }
