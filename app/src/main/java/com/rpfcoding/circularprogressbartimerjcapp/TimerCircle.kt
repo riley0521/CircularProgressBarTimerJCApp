@@ -30,7 +30,7 @@ import kotlin.math.sin
 @Composable
 fun TimerCircle(
     totalTime: Long,
-    remainingTime: Long,
+    elapsedTime: Long,
     handleColor: Color,
     inactiveBarColor: Color,
     activeBarColor: Color,
@@ -44,19 +44,19 @@ fun TimerCircle(
         mutableStateOf(IntSize.Zero)
     }
 
-    var currentTime by remember {
-        mutableStateOf(remainingTime)
+    var remainingTime by remember {
+        mutableStateOf(totalTime - elapsedTime)
     }
 
-    val value by remember(currentTime) {
+    val value by remember(remainingTime) {
         derivedStateOf {
-            currentTime / totalTime.toFloat()
+            remainingTime / totalTime.toFloat()
         }
     }
 
-    val currentTimeFormatted by remember(currentTime) {
+    val remainingTimeFormatted by remember(remainingTime) {
         derivedStateOf {
-            var milliSeconds = currentTime
+            var milliSeconds = remainingTime
 
             val minutes = TimeUnit.MILLISECONDS.toMinutes(milliSeconds)
             milliSeconds -= TimeUnit.MINUTES.toMillis(minutes)
@@ -72,12 +72,12 @@ fun TimerCircle(
         mutableStateOf(false)
     }
 
-    LaunchedEffect(currentTime, key2 = isTimerRunning) {
-        if (currentTime > 0 && isTimerRunning) {
+    LaunchedEffect(remainingTime, key2 = isTimerRunning) {
+        if (remainingTime > 0 && isTimerRunning) {
             delay(100L)
-            currentTime -= 100L
-            onTimerTick(currentTime)
-        } else if(currentTime == 0L) {
+            remainingTime -= 100L
+            onTimerTick(elapsedTime + 100L)
+        } else if (remainingTime == 0L) {
             onTimerStop(true)
         }
     }
@@ -91,7 +91,7 @@ fun TimerCircle(
     ) {
         Canvas(modifier = modifier) {
             drawArc(
-                color = inactiveBarColor,
+                color = activeBarColor,
                 startAngle = -90f,
                 sweepAngle = -360f,
                 useCenter = false,
@@ -99,7 +99,7 @@ fun TimerCircle(
                 style = Stroke(strokeWidth.toPx(), cap = StrokeCap.Round)
             )
             drawArc(
-                color = activeBarColor,
+                color = inactiveBarColor,
                 startAngle = -90f,
                 sweepAngle = -360f * value,
                 useCenter = false,
@@ -121,15 +121,14 @@ fun TimerCircle(
         }
 
         Text(
-            text = currentTimeFormatted,
+            text = remainingTimeFormatted,
             fontSize = 44.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
         Button(
             onClick = {
-                if (currentTime <= 0L) {
-                    currentTime = totalTime
+                if (remainingTime <= 0L) {
                     isTimerRunning = true
                 } else {
                     isTimerRunning = !isTimerRunning
@@ -140,14 +139,14 @@ fun TimerCircle(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 16.dp),
             colors = ButtonDefaults.buttonColors(
-                backgroundColor = if (!isTimerRunning || currentTime <= 0L) {
+                backgroundColor = if (!isTimerRunning || remainingTime <= 0L) {
                     Color.Green
                 } else Color.Red
             ),
             enabled = isActive
         ) {
             Text(
-                text = if (isTimerRunning && currentTime > 0L) "Pause"
+                text = if (isTimerRunning && remainingTime > 0L) "Pause"
                 else "Start"
             )
         }

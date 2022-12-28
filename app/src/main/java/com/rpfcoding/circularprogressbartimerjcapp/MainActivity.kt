@@ -1,7 +1,6 @@
 package com.rpfcoding.circularprogressbartimerjcapp
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -31,8 +30,14 @@ class MainActivity : ComponentActivity() {
                         mutableStateOf(2 * 60L * 1000L)
                     }
 
-                    var remainingTime by remember {
-                        mutableStateOf(3_000L)
+                    var elapsedTime by remember {
+                        mutableStateOf(115_000L)
+                    }
+
+                    val isFinished by remember(totalTime, elapsedTime) {
+                        derivedStateOf {
+                            totalTime == elapsedTime
+                        }
                     }
 
                     val daysFromDatabase by remember {
@@ -40,24 +45,22 @@ class MainActivity : ComponentActivity() {
                             listOf(
                                 DayOfWeek.MONDAY,
                                 DayOfWeek.TUESDAY,
+                                DayOfWeek.WEDNESDAY,
+                                DayOfWeek.THURSDAY,
                                 DayOfWeek.FRIDAY,
                             )
                         )
                     }
 
-                    val isActive by remember(totalTime, remainingTime, daysFromDatabase) {
+                    val isActive by remember(totalTime, elapsedTime, daysFromDatabase) {
                         // Check if totalTime is not equals to elapsedTime to know
                         // if the user already done this task for this day.
                         // And check if this task is applicable for this day
                         // Let's say Exercising is only applicable for Mon, Wed, and Thurs and today is Tuesday
                         // So this should be false.
-                        // totalTime != elapsedTime && dayOfWeek == today
+                        // totalTime == elapsedTime && dayOfWeek == today
 
                         derivedStateOf {
-                            val isFinished = remainingTime == 0L
-
-                            Log.d("MainActivity.kt", isFinished.toString())
-
                             !isFinished && daysFromDatabase.any { it == LocalDate.now().dayOfWeek }
                         }
                     }
@@ -67,26 +70,25 @@ class MainActivity : ComponentActivity() {
                     ) {
                         TimerCircle(
                             totalTime = totalTime,
-                            remainingTime = remainingTime,
+                            elapsedTime = elapsedTime,
                             handleColor = Color.Green,
                             inactiveBarColor = Color.DarkGray,
                             activeBarColor = Color(0xFF37B900),
                             isActive = isActive,
                             modifier = Modifier.size(250.dp),
                             onTimerTick = {
-                                // Every time we hit pause, we cannot save the remaining time millis
+                                // Every time we hit pause, we cannot save the elapsed time millis
                                 // to database because we might affect the performance if
                                 // we save it to database every 100 milliseconds
 
-                                remainingTime = it
-                                Log.d("MainActivity.kt", it.toString())
+                                elapsedTime = it
                             },
-                            onTimerStop = { isFinished ->
-                                if(isFinished) {
-                                    // Tick isCompleted to true in database.
-                                } else {
-                                    // Save remaining time to database.
-                                }
+                            onTimerStop = {
+
+                                /**
+                                 * Call viewModel to decide whether to save isCompleted or just
+                                 * save the elapsedTime.
+                                 */
                             }
                         )
                     }
