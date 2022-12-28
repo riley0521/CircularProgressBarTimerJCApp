@@ -21,66 +21,36 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
-import java.util.concurrent.TimeUnit
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
 fun TimerCircle(
-    totalTime: Long,
-    elapsedTime: Long,
+    remainingTime: Long,
+    percentage: Float,
     handleColor: Color,
     inactiveBarColor: Color,
     activeBarColor: Color,
     isActive: Boolean,
+    isTimerRunning: Boolean,
     modifier: Modifier = Modifier,
     strokeWidth: Dp = 5.dp,
-    onTimerTick: (Long) -> Unit,
-    onTimerStop: (Boolean) -> Unit
+    onToggleClick: (isTimerRunning: Boolean) -> Unit
 ) {
     var size by remember {
         mutableStateOf(IntSize.Zero)
     }
 
-    var remainingTime by remember {
-        mutableStateOf(totalTime - elapsedTime)
-    }
+    val remainingTimeFormatted = getFormattedTime(remainingTime)
 
-    val value by remember(remainingTime) {
-        derivedStateOf {
-            remainingTime / totalTime.toFloat()
-        }
-    }
-
-    val remainingTimeFormatted by remember(remainingTime) {
-        derivedStateOf {
-            var milliSeconds = remainingTime
-
-            val minutes = TimeUnit.MILLISECONDS.toMinutes(milliSeconds)
-            milliSeconds -= TimeUnit.MINUTES.toMillis(minutes)
-
-            val seconds = TimeUnit.MILLISECONDS.toSeconds(milliSeconds)
-
-            "${if (minutes < 10) "0$minutes" else minutes}:" +
-                    "${if (seconds < 10) "0$seconds" else seconds}"
-        }
-    }
-
-    var isTimerRunning by remember {
-        mutableStateOf(false)
-    }
-
-    LaunchedEffect(remainingTime, key2 = isTimerRunning) {
-        if (remainingTime > 0 && isTimerRunning) {
-            delay(100L)
-            remainingTime -= 100L
-            onTimerTick(elapsedTime + 100L)
-        } else if (remainingTime == 0L) {
-            onTimerStop(true)
-        }
-    }
+//    LaunchedEffect(remainingTime, isTimerRunning) {
+//        if (remainingTime > 0 && isTimerRunning) {
+//            delay(100L)
+//            remainingTime -= 100L
+//            onTimerTick(elapsedTime + 100L)
+//        }
+//    }
 
     Box(
         contentAlignment = Alignment.Center,
@@ -101,13 +71,13 @@ fun TimerCircle(
             drawArc(
                 color = inactiveBarColor,
                 startAngle = -90f,
-                sweepAngle = -360f * value,
+                sweepAngle = -360f * percentage,
                 useCenter = false,
                 size = Size(size.width.toFloat(), size.height.toFloat()),
                 style = Stroke(strokeWidth.toPx(), cap = StrokeCap.Round)
             )
             val center = Offset(size.width / 2f, size.height / 2f)
-            val beta = (-360f * value - 90) * (PI / 180f).toFloat()
+            val beta = (-360f * percentage - 90) * (PI / 180f).toFloat()
             val r = size.width / 2f
             val a = cos(beta) * r
             val b = sin(beta) * r
@@ -129,10 +99,9 @@ fun TimerCircle(
         Button(
             onClick = {
                 if (remainingTime <= 0L) {
-                    isTimerRunning = true
+                    onToggleClick(true)
                 } else {
-                    isTimerRunning = !isTimerRunning
-                    onTimerStop(false)
+                    onToggleClick(!isTimerRunning)
                 }
             },
             modifier = Modifier
